@@ -12,9 +12,7 @@ h1{font-size:24px;margin:8px 0 12px}.card{background:var(--card);border-radius:1
 label{display:block;font-size:13px;color:var(--sub);margin:12px 0 4px}label:first-child{margin-top:0}
 input,select{width:100%;min-width:0;max-width:100%;font:inherit;font-size:17px;line-height:24px;padding:0 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx)}
 input,select{display:block;height:46px;-webkit-appearance:none;appearance:none;text-align:left;margin:0}
-input[type=date]::-webkit-date-and-time-value,
 input[type=month]::-webkit-date-and-time-value{margin:0;line-height:24px;text-align:inherit}
-input[type=date]::-webkit-datetime-edit,
 input[type=month]::-webkit-datetime-edit{padding:0}
 select{padding-right:34px;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:right 17px center,right 12px center;background-size:5px 5px;background-repeat:no-repeat}
 button{font-size:17px;border:0;border-radius:12px;padding:13px;width:100%;background:var(--ac);color:var(--on-ac);margin-top:14px}
@@ -62,13 +60,18 @@ body{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
 .view-nav button{margin:0;min-height:44px;padding:8px;background:var(--bg);color:var(--tx)}
 .view-nav button[aria-current="page"]{background:var(--ac);color:var(--on-ac);font-weight:700}
 #toast{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+.date-field{position:relative}
+.date-field span{display:flex;align-items:center;height:46px;padding:0 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);font-size:17px;line-height:24px}
+.date-field input{position:absolute;inset:0;opacity:0}
+.date-field:focus-within span{outline:2px solid var(--ac);outline-offset:2px}
 </style></head><body>
 <h1>💰 記帳本</h1>
 <main>
 <form class="card" id="entry" tabindex="-1">
 <b id="entryTitle">新增支出</b>
 <div id="entryBudgetWarning" role="status" hidden></div>
-<label for="d">日期</label><input type="date" id="d">
+<label for="d">日期</label>
+<div class="date-field"><span id="dateDisplay" aria-hidden="true"></span><input type="date" id="d"></div>
 <label for="a">金額</label><input type="number" step="any" id="a" inputmode="decimal" placeholder="例如 120">
 <label for="i">購買物品</label><input id="i" placeholder="例如 午餐便當、捷運、電費">
 <label>分類（依品項自動建議，可點選修改）</label><div class="cats" id="cats"></div>
@@ -473,7 +476,7 @@ function recordRow(record) {
     $("entryTitle").textContent = "編輯支出";
     $("save").textContent = "儲存修改";
     $("cancel").hidden = false;
-    $("d").value = record.date;
+    setEntryDate(record.date);
     $("a").value = record.amt;
     $("i").value = record.item;
     setPayment(record);
@@ -754,7 +757,20 @@ $("backupFile").onchange = async event => {
 load();
 fillPayments();
 const params = new URLSearchParams(location.search);
-$("d").value = params.get("date") || today();
+function renderEntryDate() {
+  const value = $("d").value;
+  const [year, month, day] = value.split("-");
+  $("dateDisplay").textContent = value ? year + "年" + Number(month) + "月" + Number(day) + "日" : "選擇日期";
+}
+
+function setEntryDate(value) {
+  $("d").value = value;
+  renderEntryDate();
+}
+
+$("d").addEventListener("input", renderEntryDate);
+$("d").addEventListener("change", renderEntryDate);
+setEntryDate(params.get("date") || today());
 $("a").value = params.get("amount") || "";
 $("i").value = params.get("item") || "";
 const shortcutBank = params.get("bank");
