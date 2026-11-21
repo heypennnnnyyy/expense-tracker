@@ -12,8 +12,6 @@ h1{font-size:24px;margin:8px 0 12px}.card{background:var(--card);border-radius:1
 label{display:block;font-size:13px;color:var(--sub);margin:12px 0 4px}label:first-child{margin-top:0}
 input,select{width:100%;min-width:0;max-width:100%;font:inherit;font-size:17px;line-height:24px;padding:0 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx)}
 input,select{display:block;height:46px;-webkit-appearance:none;appearance:none;text-align:left;margin:0}
-input[type=month]::-webkit-date-and-time-value{margin:0;line-height:24px;text-align:inherit}
-input[type=month]::-webkit-datetime-edit{padding:0}
 select{padding-right:34px;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:right 17px center,right 12px center;background-size:5px 5px;background-repeat:no-repeat}
 button{font-size:17px;border:0;border-radius:12px;padding:13px;width:100%;background:var(--ac);color:var(--on-ac);margin-top:14px}
 button.g{background:var(--bg);color:var(--ac);border:1px solid var(--bd)}
@@ -28,7 +26,8 @@ button.g{background:var(--bg);color:var(--ac);border:1px solid var(--bd)}
 .cat-button[aria-pressed="true"]{background:var(--ac);color:var(--on-ac);border-color:var(--ac)}
 .month-nav,.actions{display:flex;gap:8px;align-items:center}
 .month-nav button,.actions button{width:auto;margin:0;flex-shrink:0}
-.month-nav input{flex:1;min-width:0;text-align:center}
+.month-nav .date-field{flex:1;min-width:0}
+.month-nav .date-field span{justify-content:center;text-align:center}
 .month-nav button.g{width:46px;height:46px;padding:0;font-size:22px}
 #budgetPanel{margin:12px 0 8px;padding:10px 0;border-block:1px solid var(--bd)}
 #budgetPanel details{margin-top:8px}
@@ -91,7 +90,7 @@ body{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
 <label for="month">帳單月份</label>
 <div class="month-nav">
 <button class="g" id="prev" aria-label="上個月">‹</button>
-<input type="month" id="month">
+<div class="date-field"><span id="monthDisplay" aria-hidden="true"></span><input type="month" id="month"></div>
 <button class="g" id="next" aria-label="下個月">›</button>
 </div>
 <div class="sub" id="mlabel"></div><div class="tot" id="tot"></div>
@@ -284,6 +283,8 @@ function monthlyRecords() {
 function showMonth(month) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month) || month.startsWith("0000")) return;
   $("month").value = month;
+  const [year, number] = month.split("-");
+  $("monthDisplay").textContent = year + "年" + Number(number) + "月";
   $("paymentFilter").value = "";
   render();
 }
