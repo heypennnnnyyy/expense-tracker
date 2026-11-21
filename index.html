@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>記帳本</title>
+<style>
+:root{--bg:#f0f4f9;--card:#fff;--tx:#253246;--sub:#56677d;--ac:#5376a4;--on-ac:#fff;--bd:#c8d5e5;--red:#a6373d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171f2b;--card:#232e3e;--tx:#edf2fa;--sub:#aabbd1;--ac:#a7c2e5;--on-ac:#172639;--bd:#465970;--red:#ffa1a4}}
+:root[data-theme="dark"]{--bg:#171f2b;--card:#232e3e;--tx:#edf2fa;--sub:#aabbd1;--ac:#a7c2e5;--on-ac:#172639;--bd:#465970;--red:#ffa1a4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px -apple-system,"PingFang TC",sans-serif;padding:16px;max-width:480px;margin:auto}
+h1{font-size:24px;margin:8px 0 12px}.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--sub);margin:12px 0 4px}label:first-child{margin-top:0}
+input,select{width:100%;min-width:0;max-width:100%;font:inherit;font-size:17px;line-height:24px;padding:0 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx)}
+input,select{display:block;height:46px;-webkit-appearance:none;appearance:none;text-align:left;margin:0}
+input[type=date]::-webkit-date-and-time-value,
+input[type=month]::-webkit-date-and-time-value{margin:0;line-height:24px;text-align:inherit}
+input[type=date]::-webkit-datetime-edit,
+input[type=month]::-webkit-datetime-edit{padding:0}
+select{padding-right:34px;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:right 17px center,right 12px center;background-size:5px 5px;background-repeat:no-repeat}
+button{font-size:17px;border:0;border-radius:12px;padding:13px;width:100%;background:var(--ac);color:var(--on-ac);margin-top:14px}
+button.g{background:var(--bg);color:var(--ac);border:1px solid var(--bd)}
+.cats{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd)}.row:last-child{border:0}
+.row small{color:var(--sub);display:block;font-size:12px}.row b{font-variant-numeric:tabular-nums}
+.x{color:var(--red);background:none;width:auto;padding:4px 10px;margin:0;font-size:20px}
+.bar{height:8px;border-radius:4px;background:var(--ac);margin-top:3px}
+.tot{font-size:30px;font-weight:700}.sub{color:var(--sub);font-size:13px}
+#toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#333;color:#fff;padding:10px 18px;border-radius:99px;opacity:0;transition:.3s;pointer-events:none}
+.cat-button{width:auto;margin:0;padding:8px 12px;border-radius:99px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);font-size:14px}
+.cat-button[aria-pressed="true"]{background:var(--ac);color:var(--on-ac);border-color:var(--ac)}
+.month-nav,.actions{display:flex;gap:8px;align-items:center}
+.month-nav button,.actions button{width:auto;margin:0;flex-shrink:0}
+.month-nav input{flex:1;min-width:0;text-align:center}
+.month-nav button.g{width:46px;height:46px;padding:0;font-size:22px}
+#budgetPanel{margin:12px 0 8px;padding:10px 0;border-block:1px solid var(--bd)}
+#budgetPanel details{margin-top:8px}
+#budgetPanel summary{font-size:14px;color:var(--ac)}
+#budgetStatus{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+#budgetStatus strong{font-size:15px}
+#budgetStatus[data-over="true"] strong{color:var(--red)}
+#budgetProgress{display:block;width:100%;height:8px;margin:8px 0 4px;accent-color:var(--ac)}
+#budgetProgress[data-over="true"]{accent-color:var(--red)}
+#budgetForm button{min-height:44px}
+#budgetFeedback{margin-top:6px}
+#entryBudgetWarning{margin:10px 0 4px;padding:10px 12px;border:1px solid var(--red);border-radius:10px;color:var(--red);font-size:14px;font-weight:600;line-height:1.45}
+#mlabel{margin-top:12px}
+.row{gap:8px}.row > div:first-child{min-width:0;overflow-wrap:anywhere}
+.row .actions button{padding:8px;font-size:14px}.row .actions b{white-space:nowrap}
+@media(max-width:380px){.row .actions{gap:3px}.row .actions button{padding:7px 5px}}
+summary{cursor:pointer;font-weight:700}
+details label:first-of-type{margin-top:12px}
+[hidden]{display:none!important}
+#toast{width:max-content;max-width:calc(100% - 24px);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2}
+#paymentTotals{margin-top:8px}
+:is(#paymentTotals,#bankTotals) button{display:flex;justify-content:space-between;gap:12px;text-align:left;margin-top:6px;font-size:15px}
+:is(#paymentTotals,#bankTotals) button[aria-pressed="true"]{border-color:var(--ac);font-weight:700}
+:is(#paymentTotals,#bankTotals) button span{overflow-wrap:anywhere;min-width:0}
+:is(#paymentTotals,#bankTotals) button b{white-space:nowrap}
+#methodFeedback{margin-top:8px}
+body{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
+.view-nav{position:fixed;z-index:1;inset:auto 0 0;margin:auto;max-width:480px;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px max(16px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:var(--card);border-top:1px solid var(--bd)}
+.view-nav button{margin:0;min-height:44px;padding:8px;background:var(--bg);color:var(--tx)}
+.view-nav button[aria-current="page"]{background:var(--ac);color:var(--on-ac);font-weight:700}
+#toast{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+</style></head><body>
+<h1>💰 記帳本</h1>
+<main>
+<form class="card" id="entry" tabindex="-1">
+<b id="entryTitle">新增支出</b>
+<div id="entryBudgetWarning" role="status" hidden></div>
+<label for="d">日期</label><input type="date" id="d">
+<label for="a">金額</label><input type="number" step="any" id="a" inputmode="decimal" placeholder="例如 120">
+<label for="i">購買物品</label><input id="i" placeholder="例如 午餐便當、捷運、電費">
+<label>分類（依品項自動建議，可點選修改）</label><div class="cats" id="cats"></div>
+<label for="method">付款方式</label><select id="method"></select>
+<div id="sourceField" hidden>
+<label for="source">扣款來源</label><select id="source">
+<option value="unspecified">未指定</option><option value="card">綁定信用卡</option>
+<option value="account">帳戶扣款</option><option value="balance">支付餘額</option>
+</select>
+</div>
+<div id="bankField" hidden><label for="b" id="bankLabel">銀行／卡片</label><select id="b"></select></div>
+<button id="save">儲存這筆</button>
+<button type="button" class="g" id="cancel" hidden>取消編輯</button>
+</form>
+<section id="ledgerView" aria-label="帳本" tabindex="-1" hidden>
+<div class="card">
+<label for="month">帳單月份</label>
+<div class="month-nav">
+<button class="g" id="prev" aria-label="上個月">‹</button>
+<input type="month" id="month">
+<button class="g" id="next" aria-label="下個月">›</button>
+</div>
+<div class="sub" id="mlabel"></div><div class="tot" id="tot"></div>
+<section id="budgetPanel" aria-label="每月預算">
+<div id="budgetInfo" hidden>
+<div id="budgetStatus"><span id="budgetLimit" class="sub"></span><strong id="budgetBalance"></strong></div>
+<progress id="budgetProgress" max="100" aria-label="預算使用進度"></progress>
+<div id="budgetPercent" class="sub"></div>
+</div>
+<details id="budgetSettings">
+<summary id="budgetToggle">設定每月預算</summary>
+<form id="budgetForm">
+<label for="budgetAmount">每月支出上限</label>
+<input id="budgetAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="例如 20000">
+<div class="sub">套用到所有帳單月份。留空可清除上限。</div>
+<button class="g">儲存預算</button>
+<div id="budgetFeedback" class="sub" role="status"></div>
+</form>
+</details>
+</section>
+<div id="stat"></div></div>
+<div class="card"><b>付款方式小計</b><div id="paymentTotals"></div></div>
+<details class="card"><summary>銀行／卡片小計</summary><div id="bankTotals"></div></details>
+<div class="card"><b>帳單明細</b>
+<label for="paymentFilter">篩選付款方式或銀行／卡片</label><select id="paymentFilter"></select>
+<div id="list"></div></div>
+<details class="card"><summary>自訂銀行與支付平台</summary>
+<form id="paymentForm">
+<label for="customType">新增項目</label><select id="customType">
+<option value="bank">銀行／卡片</option><option value="platform">電子支付平台</option>
+</select>
+<label for="paymentName">名稱</label><input id="paymentName" maxlength="40" required placeholder="例如 玉山 U Bear 卡">
+<button class="g">新增</button>
+</form>
+<div id="methodFeedback" class="sub" role="status"></div>
+</details>
+<details class="card"><summary>跨月規則</summary><div class="sub">指定信用卡的消費，在某號（含）之後會算進次月報表。修改會重新計算既有紀錄的歸屬月份。</div>
+<label for="rb">銀行／卡片</label><select id="rb"></select><label for="rd">算入次月的日期</label><select id="rd"><option value="0">當月最後一天（自動判斷28/29/30/31）</option><option value="1">1 號（含）之後</option><option value="2">2 號（含）之後</option><option value="3">3 號（含）之後</option><option value="4">4 號（含）之後</option><option value="5">5 號（含）之後</option><option value="6">6 號（含）之後</option><option value="7">7 號（含）之後</option><option value="8">8 號（含）之後</option><option value="9">9 號（含）之後</option><option value="10">10 號（含）之後</option><option value="11">11 號（含）之後</option><option value="12">12 號（含）之後</option><option value="13">13 號（含）之後</option><option value="14">14 號（含）之後</option><option value="15">15 號（含）之後</option><option value="16">16 號（含）之後</option><option value="17">17 號（含）之後</option><option value="18">18 號（含）之後</option><option value="19">19 號（含）之後</option><option value="20">20 號（含）之後</option><option value="21">21 號（含）之後</option><option value="22">22 號（含）之後</option><option value="23">23 號（含）之後</option><option value="24">24 號（含）之後</option><option value="25">25 號（含）之後</option><option value="26">26 號（含）之後</option><option value="27">27 號（含）之後</option><option value="28">28 號（含）之後</option><option value="29">29 號（含）之後</option><option value="30" selected>30 號（含）之後</option><option value="31">31 號（含）之後</option></select>
+<button class="g" id="rs">儲存規則</button><button class="g" id="rc">清除此卡片的規則</button><div id="rl" style="margin-top:8px"></div></details>
+<details class="card"><summary>匯出與備份</summary>
+<button class="g" id="exp">用捷徑寄出所選月份</button>
+<div class="sub" style="margin-top:8px">使用 iPhone 捷徑「寄出帳本」。</div>
+<button class="g" id="copy">複製所選月份 CSV</button>
+<button class="g" id="backup">下載完整備份（JSON）</button>
+<button class="g" id="restore">從備份還原</button>
+<input type="file" id="backupFile" accept=".json,application/json" hidden>
+<div class="sub">完整備份包含所有月份、分類記憶、跨月規則、自訂銀行、支付平台與每月預算。</div>
+</details>
+</section>
+</main>
+<nav class="view-nav" aria-label="主要導覽">
+<button type="button" id="entryTab" aria-controls="entry" aria-current="page">記帳</button>
+<button type="button" id="ledgerTab" aria-controls="ledgerView">帳本</button>
+</nav>
+<div id="toast" role="status"></div>
+<script>
+const CATS = ["餐飲", "交通", "購物", "日用品", "娛樂", "醫療", "帳單", "寵物", "其他"];
+// Match specific phrases before generic words, independent of chip order.
+const CATEGORY_TERMS = {
+  寵物: "小波 寵物 狗狗 貓咪 狗飼料 貓飼料 飼料 狗糧 貓糧 貓砂 貓抓板 貓抓柱 貓跳台 狗罐頭 貓罐頭 主食罐 肉泥 狗零食 貓零食 潔牙骨 便袋 撿便袋 尿布墊 尿墊 胸背帶 寵物牽繩 狗繩 獸醫 動物醫院 寵物美容 狗洗澡 貓洗澡 心絲蟲 犬心寶 犬用 貓用 狗用 皇家飼料 貓條 貓草 跳蚤藥",
+  帳單: "水費 電費 房租 租金 電信 網路費 瓦斯 天然氣 保費 保險 稅金 所得稅 手續費 管理費 電話費 手機費 手機月租 第四台",
+  醫療: "掛號 牙醫 看牙 洗牙 牙科 牙套 診所 醫院 藥局 藥品 藥費 眼科 健檢 復健 中醫 物理治療 看診 感冒藥 止痛藥 處方 醫療",
+  交通: "捷運 公車 高鐵 台鐵 火車 車票 加油 油錢 停車 計程車 悠遊卡 一卡通 機票 過路費 客運 租車 ubike youbike uber etag 叫車 通勤",
+  娛樂: "電影 影城 遊戲 netflix spotify disney+ youtubepremium ktv 演唱會 旅遊 桌遊 展覽 娛樂 漫畫 訂閱",
+  餐飲: "早餐 午餐 晚餐 宵夜 早午餐 咖啡 拿鐵 飲料 便當 拉麵 牛肉麵 泡麵 乾麵 炒飯 滷肉飯 飯糰 麥當勞 手搖 火鍋 水果 零食 外送 ubereats foodpanda 50嵐 珍珠奶茶 奶茶 鹹酥雞 壽司 水餃 漢堡 披薩 咖哩 烘焙 麵包 小吃 甜點 蛋糕 豆漿 炸雞 鹽酥雞 麻辣燙 義大利麵 用餐 餐費 米飯 茶 餐 麵 飯",
+  日用品: "衛生紙 面紙 洗衣精 洗衣粉 洗衣球 洗碗精 洗髮精 沐浴乳 清潔劑 洗手乳 牙膏 牙刷 牙線 衛生棉 濕紙巾 垃圾袋 全聯 家樂福 costco 好市多 日用品 清潔用品 洗面乳 量販",
+  購物: "衣服 外套 上衣 襯衫 褲子 牛仔褲 鞋子 球鞋 蝦皮 momo 包包 背包 手機 手機殼 充電線 配件 禮物 耳機 衣 褲 鞋"
+};
+const SHORT_EXACT_TERMS = {包: "購物", 洗: "日用品", 牙: "醫療", 藥: "醫療", 稅: "帳單", 電信: "帳單", 超商: "餐飲"};
+const normalizeItem = item => item.normalize("NFKC").toLowerCase().replace(/\s+/g, "").trim();
+const categoryTerms = Object.entries(CATEGORY_TERMS).flatMap(([name, terms]) =>
+  terms.split(" ").map(term => ({name, term: normalizeItem(term)}))
+).sort((a, b) => b.term.length - a.term.length);
+var BANKS=["國泰世華","中國信託","玉山","台新","富邦","永豐","聯邦","第一銀行","兆豐","華南","現金/其他"];
+const $ = id => document.getElementById(id);
+const storageKey = "expense-ledger-v1";
+const DEFAULT_PAYMENTS = [...BANKS, "現金", "轉帳", "其他"];
+const emptyLedger = () => ({rec: [], map: {}, rules: {}, payments: [], platforms: [], budget: null});
+const BASE_METHODS = ["現金", "刷卡", "轉帳", "其他"];
+const BASE_PLATFORMS = ["街口支付", "LINE Pay"];
+const LEGACY_METHOD = "現金/其他";
+const SOURCES = ["unspecified", "card", "account", "balance"];
+let state = emptyLedger();
+let readFailed = false;
+let category = "其他";
+let manualCategory = false;
+let editing = null;
+let toastTimer;
+const pad = number => String(number).padStart(2, "0");
+
+function today() {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+function shiftMonth(month, offset) {
+  const [year, number] = month.split("-").map(Number);
+  const date = new Date(2000, 0, 1);
+  date.setFullYear(year, number - 1 + offset, 1);
+  return `${String(date.getFullYear()).padStart(4, "0")}-${pad(date.getMonth() + 1)}`;
+}
+
+function billingMonth(record, rules = state.rules) {
+  const month = record.date.slice(0, 7);
+  if (record.method !== undefined && record.method !== "刷卡" && record.source !== "card") return month;
+  const [year, number, day] = record.date.split("-").map(Number);
+  const cutoff = Object.hasOwn(rules, record.bank) ? rules[record.bank] : undefined;
+  const end = new Date(2000, 0, 1);
+  end.setFullYear(year, number, 0);
+  if (cutoff === 0 ? day === end.getDate() : day >= cutoff) {
+    return shiftMonth(month, 1);
+  }
+  return month;
+}
+
+function toast(message) {
+  clearTimeout(toastTimer);
+  $("toast").textContent = message;
+  $("toast").style.opacity = 1;
+  toastTimer = setTimeout(() => $("toast").style.opacity = 0, 3600);
+}
+
+function load() {
+  try {
+    const saved = localStorage.getItem(storageKey);
+    state = saved === null ? {
+      rec: JSON.parse(localStorage.getItem("rec") ?? "[]"),
+      map: JSON.parse(localStorage.getItem("map") ?? "{}"),
+      rules: JSON.parse(localStorage.getItem("rules") ?? "{}")
+    } : JSON.parse(saved);
+    state = migrateLedger(state);
+  } catch {
+    readFailed = true;
+    state = emptyLedger();
+    toast("無法讀取帳本，可從備份還原");
+  }
+}
+
+function commit(updated, restoring = false) {
+  if (readFailed && !restoring) {
+    toast("帳本讀取失敗，請先從備份還原");
+    return false;
+  }
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(updated));
+  } catch {
+    toast("儲存失敗，請檢查瀏覽器儲存空間");
+    return false;
+  }
+  state = updated;
+  readFailed = false;
+  return true;
+}
+
+function guess(item) {
+  const key = normalizeItem(item);
+  if (Object.hasOwn(state.map, key)) return state.map[key];
+  if (Object.hasOwn(SHORT_EXACT_TERMS, key)) return SHORT_EXACT_TERMS[key];
+  if (key.includes("寵物") || key.includes("小波")) return "寵物";
+  return categoryTerms.find(({term}) => key.includes(term))?.name ?? "其他";
+}
+
+function drawCategories() {
+  $("cats").replaceChildren(...CATS.map(name => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "cat-button";
+    button.textContent = name;
+    button.setAttribute("aria-pressed", name === category);
+    button.onclick = () => {
+      category = name;
+      manualCategory = true;
+      for (const chip of $("cats").children) {
+        chip.setAttribute("aria-pressed", chip.textContent === name);
+      }
+    };
+    return button;
+  }));
+}
+
+function selectedMonth() {
+  return $("month").value || today().slice(0, 7);
+}
+
+function monthlyRecords() {
+  const month = selectedMonth();
+  return state.rec.filter(record => billingMonth(record) === month);
+}
+
+function showMonth(month) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month) || month.startsWith("0000")) return;
+  $("month").value = month;
+  $("paymentFilter").value = "";
+  render();
+}
+
+function element(tag, content, className) {
+  const node = document.createElement(tag);
+  if (content !== undefined) node.textContent = content;
+  if (className) node.className = className;
+  return node;
+}
+
+const money = amount => "$" + amount.toLocaleString("zh-TW", {maximumFractionDigits: 20});
+
+function paymentOptions() {
+  return [...state.payments, ...DEFAULT_PAYMENTS];
+}
+
+function platformOptions() {
+  return [...BASE_PLATFORMS, ...state.platforms];
+}
+
+function bankOptions() {
+  return [...state.payments, ...BANKS.filter(name => name !== LEGACY_METHOD)];
+}
+
+function methodOf(record) {
+  return record.method ?? (DEFAULT_PAYMENTS.slice(-3).includes(record.bank) || record.bank === LEGACY_METHOD
+    ? record.bank : "刷卡");
+}
+
+function bankOf(record) {
+  return record.method !== undefined || methodOf(record) === "刷卡" ? record.bank : "";
+}
+
+function fillSelect(id, options, initial = options[0]?.value) {
+  const select = $(id);
+  const previous = select.value;
+  select.replaceChildren(...options);
+  select.value = options.some(option => option.value === previous) ? previous : initial;
+}
+
+function fillPayments() {
+  const options = names => names.map(name => new Option(name, name));
+  const methods = [...BASE_METHODS, ...platformOptions()];
+  if (state.rec.some(record => methodOf(record) === LEGACY_METHOD) ||
+      new URLSearchParams(location.search).get("bank") === LEGACY_METHOD) methods.push(LEGACY_METHOD);
+  fillSelect("method", options(methods), "刷卡");
+  fillSelect("b", [new Option("未指定", ""), ...options(bankOptions())]);
+  fillSelect("rb", options([...new Set([...bankOptions(), ...Object.keys(state.rules)])]));
+  fillSelect("paymentFilter", [
+    new Option("全部紀錄", ""),
+    ...options(methods).map(option => new Option(option.text, "method:" + option.value)),
+    ...bankOptions().map(name => new Option("銀行／卡片・" + name, "bank:" + name))
+  ]);
+}
+
+function updatePaymentFields() {
+  const method = $("method").value;
+  const platform = platformOptions().includes(method);
+  const source = $("source").value;
+  $("sourceField").hidden = !platform;
+  $("bankField").hidden = !(method === "刷卡" || method === "轉帳" || (platform && ["card", "account"].includes(source)));
+  $("bankLabel").textContent = method === "刷卡" || (platform && source === "card") ? "銀行／卡片" : "銀行";
+}
+
+function setPayment(record) {
+  $("method").value = methodOf(record);
+  $("source").value = record.source ?? "unspecified";
+  $("b").value = bankOf(record);
+  updatePaymentFields();
+}
+
+function useLastPayment(method) {
+  const recent = state.rec.findLast(record => methodOf(record) === method);
+  setPayment(recent ?? {method, bank: method === "刷卡" ? bankOptions()[0] : ""});
+}
+
+function renderPaymentTotals(id, totals, prefix, filter) {
+  const buttons = [...totals].sort((a, b) => b[1] - a[1]).map(([name, amount]) => {
+    const button = element("button", undefined, "g");
+    const key = prefix + name;
+    button.setAttribute("aria-pressed", key === filter);
+    button.append(element("span", name), element("b", money(amount)));
+    button.onclick = () => {
+      $("paymentFilter").value = key === filter ? "" : key;
+      render();
+    };
+    return button;
+  });
+  $(id).replaceChildren(...(buttons.length ? buttons : [element("p", "沒有紀錄", "sub")]));
+}
+
+const budgetMoney = amount => "$" + amount.toLocaleString("zh-TW", {maximumFractionDigits: 2});
+
+function budgetBalance(total) {
+  return Math.round((state.budget - total) * 100) / 100;
+}
+
+function budgetNotice(month) {
+  if (state.budget === null) return "";
+  const spent = state.rec.reduce((total, record) =>
+    billingMonth(record) === month ? total + record.amt : total, 0);
+  const remaining = budgetBalance(spent);
+  if (remaining < 0) return "預算已超出 " + budgetMoney(-remaining);
+  return remaining === 0 ? "已達預算" : "";
+}
+
+function renderEntryBudgetWarning() {
+  const warning = $("entryBudgetWarning");
+  const notice = budgetNotice(today().slice(0, 7));
+  const message = notice ? "本月" + notice : "";
+  warning.hidden = !message;
+  if (warning.textContent !== message) warning.textContent = message;
+}
+
+function renderBudget(total) {
+  const budget = state.budget;
+  $("budgetToggle").textContent = budget === null ? "設定每月預算" : "編輯預算";
+  $("budgetInfo").hidden = budget === null;
+  if (budget === null) return;
+  const remaining = budgetBalance(total);
+  const over = remaining < 0;
+  const percent = Math.max(0, total / budget * 100);
+  $("budgetLimit").textContent = "每月預算 " + budgetMoney(budget);
+  $("budgetBalance").textContent = remaining === 0 ? "已達預算" :
+    (over ? "已超出 " : "剩餘 ") + budgetMoney(Math.abs(remaining));
+  $("budgetStatus").dataset.over = over;
+  $("budgetProgress").value = Math.min(percent, 100);
+  $("budgetProgress").dataset.over = over;
+  $("budgetPercent").textContent = "已使用 " + percent.toLocaleString("zh-TW", {maximumFractionDigits: 1}) + "%";
+}
+
+function render() {
+  const records = monthlyRecords().sort((a, b) => b.date.localeCompare(a.date));
+  const totals = {};
+  const byPayment = new Map();
+  const byBank = new Map();
+  let total = 0;
+  for (const record of records) {
+    total += record.amt;
+    const method = methodOf(record);
+    const bank = bankOf(record);
+    byPayment.set(method, (byPayment.get(method) ?? 0) + record.amt);
+    if (bank) byBank.set(bank, (byBank.get(bank) ?? 0) + record.amt);
+    totals[record.cat] = (totals[record.cat] || 0) + record.amt;
+  }
+  $("mlabel").textContent = selectedMonth().replace("-", " 年 ") + " 月支出合計";
+  $("tot").textContent = money(total);
+  renderBudget(total);
+  renderEntryBudgetWarning();
+  const scale = Object.values(totals).reduce((sum, amount) => sum + Math.abs(amount), 0);
+  $("stat").replaceChildren(...Object.entries(totals).sort((a, b) => b[1] - a[1]).map(([name, amount]) => {
+    const row = element("div");
+    row.style.marginTop = "8px";
+    const bar = element("div", undefined, "bar");
+    bar.style.width = (scale ? Math.abs(amount) / scale * 100 : 0) + "%";
+    row.append(element("span", name + "　" + money(amount), "sub"), bar);
+    return row;
+  }));
+  const filter = $("paymentFilter").value;
+  renderPaymentTotals("paymentTotals", byPayment, "method:", filter);
+  renderPaymentTotals("bankTotals", byBank, "bank:", filter);
+  const visible = filter ? records.filter(record =>
+    filter === "method:" + methodOf(record) || filter === "bank:" + bankOf(record)) : records;
+  $("list").replaceChildren(...visible.map(recordRow));
+  if (!visible.length) $("list").append(element("div", filter ? "這個月份沒有此付款方式的紀錄" : "這個月份沒有紀錄", "sub"));
+}
+
+function showView(view) {
+  const ledger = view === "ledger";
+  $("entry").hidden = ledger;
+  $("ledgerView").hidden = !ledger;
+  $("entryTab").setAttribute("aria-current", ledger ? "false" : "page");
+  $("ledgerTab").setAttribute("aria-current", ledger ? "page" : "false");
+  if (!ledger) renderEntryBudgetWarning();
+  window.scrollTo(0, 0);
+}
+
+$("entryTab").onclick = () => showView("entry");
+$("ledgerTab").onclick = () => showView("ledger");
+
+function recordRow(record) {
+  const row = element("div", undefined, "row");
+  const info = element("div");
+  info.append(element("span", record.item), element("small", [record.date.slice(5), record.cat, methodOf(record), sourceLabel(record), bankOf(record)].filter(Boolean).join("・")));
+  const actions = element("div", undefined, "actions");
+  const edit = element("button", "編輯", "g");
+  edit.onclick = () => {
+    editing = record;
+    $("entryTitle").textContent = "編輯支出";
+    $("save").textContent = "儲存修改";
+    $("cancel").hidden = false;
+    $("d").value = record.date;
+    $("a").value = record.amt;
+    $("i").value = record.item;
+    setPayment(record);
+    category = record.cat;
+    manualCategory = true;
+    drawCategories();
+    showView("entry");
+    $("entry").focus({preventScroll: true});
+  };
+  const remove = element("button", "×", "x");
+  remove.setAttribute("aria-label", "刪除「" + record.item + "」");
+  remove.onclick = () => {
+    if (!confirm("刪除「" + record.item + "」？")) return;
+    if (!commit({...state, rec: state.rec.filter(item => item !== record)})) return;
+    if (editing === record) resetEntry();
+    render();
+    toast("已刪除");
+  };
+  actions.append(element("b", money(record.amt)), edit, remove);
+  row.append(info, actions);
+  return row;
+}
+
+function resetEntry() {
+  editing = null;
+  $("entryTitle").textContent = "新增支出";
+  $("save").textContent = "儲存這筆";
+  $("cancel").hidden = true;
+  $("a").value = "";
+  $("i").value = "";
+  category = "其他";
+  manualCategory = false;
+  drawCategories();
+}
+
+function saveEntry() {
+  const amount = Number($("a").value);
+  const item = $("i").value.trim();
+  const date = $("d").value || today();
+  if (!Number.isFinite(amount) || amount === 0 || !item || !validDate(date)) {
+    toast("請確認日期、金額、品項和付款方式");
+    return false;
+  }
+  const method = $("method").value;
+  const source = platformOptions().includes(method) ? $("source").value : "unspecified";
+  const bank = $("bankField").hidden ? "" : $("b").value;
+  if ((method === "刷卡" || source === "card") && !bank) {
+    toast("請選擇銀行／卡片");
+    return false;
+  }
+  const payment = editing && editing.method === undefined && methodOf(editing) === method && bankOf(editing) === bank
+    ? {bank: editing.bank} : {method, source, bank};
+  const record = {date, amt: amount, item, cat: category, ...payment};
+  const records = editing ? state.rec.map(existing => existing === editing ? record : existing) : [...state.rec, record];
+  if (!commit({...state, rec: records, map: {...state.map, [normalizeItem(item)]: category}})) return false;
+  const month = billingMonth(record);
+  const wasEditing = Boolean(editing);
+  resetEntry();
+  showMonth(month);
+  if (wasEditing) showView("ledger");
+  const notice = budgetNotice(month);
+  toast(notice ? "已儲存，" + month + " " + notice : "已儲存，歸入 " + month + " 帳單");
+  return true;
+}
+
+function drawRules() {
+  const rows = Object.entries(state.rules).map(([bank, cutoff]) =>
+    element("div", bank + "・" + (cutoff === 0 ? "當月最後一天" : cutoff + " 號（含）之後") + "算次月", "row"));
+  $("rl").replaceChildren(...(rows.length ? rows : [element("div", "尚未設定", "sub")]));
+  $("rd").value = state.rules[$("rb").value] ?? 30;
+}
+
+function sourceLabel(record) {
+  if (!platformOptions().includes(record.method)) return "";
+  return {card: "綁定信用卡", account: "帳戶扣款", balance: "支付餘額", unspecified: "未指定"}[record.source];
+}
+
+function exportMonth() {
+  const records = monthlyRecords().sort((a, b) => a.date.localeCompare(b.date));
+  const quote = value => '"' + value.replace(/"/g, '""') + '"';
+  const lines = records.map(record => [record.date, record.amt, quote(record.item), record.cat, quote(bankOf(record)), quote(methodOf(record)), quote(sourceLabel(record))].join(","));
+  const total = records.reduce((sum, record) => sum + record.amt, 0);
+  return [selectedMonth() + " 月帳本（共" + records.length + "筆）",
+    "日期,金額,購買物品,分類,銀行／卡片,付款方式,扣款來源", ...lines, "合計," + total].join("\n");
+}
+
+function validDate(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith("0000")) return false;
+  const date = new Date(value + "T00:00:00Z");
+  return Number.isFinite(date.valueOf()) && date.toISOString().slice(0, 10) === value;
+}
+
+function migrateLedger(data) {
+  if (!validBackup(data)) throw new Error("Invalid ledger");
+  const rename = name => name === "小波" ? "寵物" : name;
+  return {
+    rec: data.rec.map(record => record.cat === "小波" ? {...record, cat: rename(record.cat)} : record),
+    map: Object.fromEntries(Object.entries(data.map).map(([item, name]) => [normalizeItem(item), rename(name)])),
+    rules: data.rules,
+    payments: data.payments ?? [],
+    platforms: data.platforms ?? [],
+    budget: data.budget ?? null
+  };
+}
+
+function validBackup(data) {
+  const validCategory = name => name === "小波" || CATS.includes(name);
+  const dictionary = value => value && typeof value === "object" && !Array.isArray(value);
+  const payments = data?.payments === undefined ? [] : data.payments;
+  if (!Array.isArray(payments) || !payments.every(validPaymentName) ||
+      new Set([...DEFAULT_PAYMENTS, ...payments].map(normalizeItem)).size !== DEFAULT_PAYMENTS.length + payments.length) return false;
+  const platforms = data?.platforms === undefined ? [] : data.platforms;
+  const methods = [...BASE_METHODS, ...BASE_PLATFORMS, LEGACY_METHOD];
+  if (!Array.isArray(platforms) || !platforms.every(validPaymentName) ||
+      new Set([...methods, ...platforms].map(normalizeItem)).size !== methods.length + platforms.length) return false;
+  const validPayment = name => DEFAULT_PAYMENTS.includes(name) || payments.includes(name);
+  return dictionary(data) && (data.budget == null || validBudget(data.budget)) && Array.isArray(data.rec)
+    && data.rec.every(record => dictionary(record) && validDate(record.date)
+      && Number.isFinite(record.amt) && record.amt !== 0 && typeof record.item === "string"
+      && validCategory(record.cat)
+      && (record.method === undefined ? validPayment(record.bank)
+        : [...methods, ...platforms].includes(record.method) && SOURCES.includes(record.source)
+          && (record.bank === "" || validPayment(record.bank))))
+    && dictionary(data.map) && Object.values(data.map).every(validCategory)
+    && dictionary(data.rules) && Object.entries(data.rules).every(([bank, cutoff]) =>
+      validPayment(bank) && Number.isInteger(cutoff) && cutoff >= 0 && cutoff <= 31);
+}
+
+function validBudget(amount) {
+  return Number.isFinite(amount) && amount > 0 && Number.isSafeInteger(Math.round(amount * 100)) &&
+    Math.round(amount * 100) / 100 === amount;
+}
+
+$("budgetSettings").ontoggle = () => {
+  if (!$("budgetSettings").open) return;
+  $("budgetAmount").value = state.budget ?? "";
+  $("budgetFeedback").textContent = "";
+};
+
+$("budgetForm").onsubmit = event => {
+  event.preventDefault();
+  const value = $("budgetAmount").value;
+  const budget = value === "" ? null : Number(value);
+  if (budget !== null && !validBudget(budget)) {
+    $("budgetFeedback").textContent = "請輸入大於零的金額，最多兩位小數";
+    return;
+  }
+  if (!commit({...state, budget})) return;
+  $("budgetSettings").open = false;
+  render();
+  toast(budget === null ? "已清除預算" : "已儲存每月預算");
+};
+
+function validPaymentName(name) {
+  return typeof name === "string" && name === name.trim() && name.length > 0 && name.length <= 40;
+}
+
+$("paymentForm").onsubmit = event => {
+  event.preventDefault();
+  const name = $("paymentName").value.trim();
+  if (!validPaymentName(name)) {
+    $("methodFeedback").textContent = "請輸入 1 至 40 字的付款方式名稱";
+    return;
+  }
+  const platform = $("customType").value === "platform";
+  const choices = platform ? [...BASE_METHODS, LEGACY_METHOD, ...platformOptions()] : paymentOptions();
+  if (choices.some(payment => normalizeItem(payment) === normalizeItem(name))) {
+    $("methodFeedback").textContent = "已有相同的付款方式";
+    return;
+  }
+  const key = platform ? "platforms" : "payments";
+  if (!commit({...state, [key]: [...state[key], name]})) return;
+  fillPayments();
+  if (platform) useLastPayment(name);
+  else setPayment({method: "刷卡", bank: name});
+  $("paymentName").value = "";
+  $("methodFeedback").textContent = "已新增「" + name + "」，可在記帳表單選用";
+};
+
+$("customType").onchange = () => {
+  $("paymentName").placeholder = $("customType").value === "platform" ? "例如 全支付" : "例如 玉山 U Bear 卡";
+};
+$("method").onchange = () => useLastPayment($("method").value);
+$("source").onchange = updatePaymentFields;
+$("paymentFilter").onchange = render;
+$("entry").addEventListener("focusin", renderEntryBudgetWarning);
+window.addEventListener("pageshow", renderEntryBudgetWarning);
+$("entry").onsubmit = event => {
+  event.preventDefault();
+  saveEntry();
+};
+$("cancel").onclick = () => {
+  resetEntry();
+  showView("ledger");
+};
+$("i").oninput = () => {
+  if (manualCategory && $("i").value.trim()) return;
+  manualCategory = false;
+  category = guess($("i").value);
+  drawCategories();
+};
+$("month").onchange = () => showMonth(selectedMonth());
+$("prev").onclick = () => showMonth(shiftMonth(selectedMonth(), -1));
+$("next").onclick = () => showMonth(shiftMonth(selectedMonth(), 1));
+$("rb").onchange = drawRules;
+$("rs").onclick = () => {
+  if (!commit({...state, rules: {...state.rules, [$("rb").value]: Number($("rd").value)}})) return;
+  drawRules();
+  render();
+  toast("已儲存規則");
+};
+$("rc").onclick = () => {
+  const rules = {...state.rules};
+  delete rules[$("rb").value];
+  if (!commit({...state, rules})) return;
+  drawRules();
+  render();
+  toast("已清除規則");
+};
+$("exp").onclick = () => {
+  if (!monthlyRecords().length) {
+    toast("這個月份沒有紀錄");
+    return;
+  }
+  location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent("寄出帳本")
+    + "&input=text&text=" + encodeURIComponent(exportMonth());
+};
+$("copy").onclick = async () => {
+  const content = exportMonth();
+  try {
+    await navigator.clipboard.writeText(content);
+    toast("已複製");
+  } catch {
+    prompt("請手動複製", content);
+  }
+};
+$("backup").onclick = () => {
+  if (readFailed) {
+    toast("帳本讀取失敗，無法產生備份");
+    return;
+  }
+  const blob = new Blob([JSON.stringify({version: 4, ...state}, null, 2)], {type: "application/json"});
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = "ledger-" + today() + ".json";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+};
+$("restore").onclick = () => $("backupFile").click();
+$("backupFile").onchange = async event => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  let backup;
+  try {
+    backup = JSON.parse(await file.text());
+    if (![1, 2, 3, 4].includes(backup?.version)) throw new Error("Invalid backup");
+    backup = migrateLedger(backup);
+  } catch {
+    toast("備份檔無法讀取或格式有誤");
+    return;
+  }
+  if (!confirm("還原會覆蓋目前帳本與設定。備份共有 " + backup.rec.length + " 筆紀錄。確定還原？")) return;
+  if (!commit(backup, true)) return;
+  $("budgetSettings").open = false;
+  fillPayments();
+  useLastPayment($("method").value);
+  resetEntry();
+  drawRules();
+  const latest = state.rec.map(record => billingMonth(record)).sort().pop();
+  showMonth(latest || today().slice(0, 7));
+  toast("已還原 " + state.rec.length + " 筆紀錄");
+};
+
+load();
+fillPayments();
+const params = new URLSearchParams(location.search);
+$("d").value = params.get("date") || today();
+$("a").value = params.get("amount") || "";
+$("i").value = params.get("item") || "";
+const shortcutBank = params.get("bank");
+if (paymentOptions().includes(shortcutBank)) setPayment({bank: shortcutBank});
+else useLastPayment(state.rec.findLast(record => record.method && record.method !== LEGACY_METHOD)?.method ?? "刷卡");
+category = guess($("i").value);
+drawCategories();
+drawRules();
+showMonth(today().slice(0, 7));
+if (params.get("auto") === "1" && saveEntry()) {
+  history.replaceState(null, "", location.pathname + location.hash);
+}
+</script></body></html>
